@@ -67,6 +67,10 @@ jobs:
       # Run rspec in parallel
       - type: shell
         command: |
+          rails server &
+          sleep 30
+          curl localhost:3000
+          echo $PATH
           bundle exec rspec --profile 10 \
                             --format RspecJunitFormatter \
                             --out test_results/rspec.xml \
