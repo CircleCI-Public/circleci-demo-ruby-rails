@@ -3,7 +3,7 @@ jobs:
   build:
     parallelism: 3
     docker:
-      - image: circleci/ruby:2.4-node
+      - image: circleci/ruby:2.4.2-node
         environment:
           BUNDLE_JOBS: 3
           BUNDLE_RETRY: 3
