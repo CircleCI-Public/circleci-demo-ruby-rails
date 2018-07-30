@@ -1,7 +1,7 @@
 version: 2
-jobs:
-  build:
-    parallelism: 3
+
+executors:
+  ruby:
     docker:
       - image: circleci/ruby:2.4.2-jessie-node
         environment:
@@ -16,6 +16,11 @@ jobs:
           POSTGRES_USER: circleci-demo-ruby
           POSTGRES_DB: rails_blog
           POSTGRES_PASSWORD: ""
+
+jobs:
+  build:
+    parallelism: 3
+    executor: ruby
     steps:
       - checkout
 
