@@ -59,6 +59,7 @@ development:
 # Do not set this db to the same as development or production.
 test:
   <<: *default
+  user: <%= ENV.fetch("PGUSER") %>
   database: rails_blog
 
 # As with config/secrets.yml, you never want to store sensitive information,
