@@ -2,7 +2,7 @@
   "name": "circleci-demo-ruby-rails",
   "private": true,
   "dependencies": {
-    "bootstrap": "^3.3.7"
+    "bootstrap": "~>4.1.2"
   },
   "version": "1.0.0",
   "repository": "git@github.com:CircleCI-Public/circleci-demo-ruby-rails.git",
