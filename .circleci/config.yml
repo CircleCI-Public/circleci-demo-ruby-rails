@@ -12,7 +12,7 @@ jobs:
       - image: circleci/postgres:10.4-alpine
         environment:
           POSTGRES_USER: app
-          POSTGRES_DB: circleci
+          POSTGRES_DB: circleci_test
           POSTGRES_PASSWORD: ""
           RAILS_ENV: test
 
