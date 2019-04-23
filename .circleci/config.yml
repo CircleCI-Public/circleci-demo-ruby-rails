@@ -7,13 +7,15 @@ jobs:
         environment:
           BUNDLE_PATH: vendor/bundle
           PGHOST: 127.0.0.1
-          PGUSER: root
+          PGUSER: app
           RAILS_ENV: test
       - image: circleci/postgres:10.4-alpine
         environment:
-          POSTGRES_USER: root
+          POSTGRES_USER: app
           POSTGRES_DB: circleci
-          
+          POSTGRES_PASSWORD: ""
+          RAILS_ENV: test
+
     steps:
       - checkout
 
