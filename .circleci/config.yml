@@ -13,8 +13,8 @@ jobs:
           RAILS_ENV: test
       - image: circleci/postgres:9.5-alpine
         environment:
-          POSTGRES_USER: circleci-demo-ruby
-          POSTGRES_DB: rails_blog
+          POSTGRES_USER: postgres
+          POSTGRES_DB: circleci
           POSTGRES_PASSWORD: ""
     steps:
       - checkout
