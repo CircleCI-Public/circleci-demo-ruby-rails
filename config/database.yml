@@ -9,7 +9,7 @@ development:
   <<: *default
   database: circleci_development
 
-test: &test
+test:
   <<: *default
   database: circleci_test
 
