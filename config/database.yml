@@ -17,4 +17,4 @@ production:
   <<: *default
   database: circleci_production
   username: circleci
-  password: <%= ENV['XV_SUPPORT_QA_DATABASE_PASSWORD'] %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
