@@ -1,7 +1,6 @@
 version: 2
 jobs:
   build:
-    parallelism: 3
     docker:
       - image: circleci/ruby:2.5.3-node
         environment:
