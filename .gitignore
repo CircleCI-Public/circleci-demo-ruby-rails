@@ -27,3 +27,6 @@
 # Ignore dist files
 /public/assets
 
+# Ignore env files
+*.env
+
