@@ -1,9 +1,21 @@
-version: 2
-jobs:
-  build:
-    parallelism: 3
+version: 2.1
+
+orbs:
+  ruby: circleci/ruby@0.1.0
+
+executors:
+  ruby_with_postgres:
+    parameters:
+      ruby_tag:
+        description: "The `circleci/postgres` Docker image version tag."
+        type: string
+        default: "latest"
+      postgres_tag:
+        description: "The `circleci/postgres` Docker image version tag."
+        type: string
+        default: "latest"
     docker:
-      - image: circleci/ruby:2.4.2-jessie-node
+      - image: circleci/ruby:<< parameters.ruby_tag >>
         environment:
           BUNDLE_JOBS: 3
           BUNDLE_RETRY: 3
@@ -11,34 +23,32 @@ jobs:
           PGHOST: 127.0.0.1
           PGUSER: circleci-demo-ruby
           RAILS_ENV: test
-      - image: circleci/postgres:9.5-alpine
+      - image: circleci/postgres:<< parameters.postgres_tag >>
         environment:
           POSTGRES_USER: circleci-demo-ruby
           POSTGRES_DB: rails_blog
           POSTGRES_PASSWORD: ""
+
+jobs:
+  build:
+    docker:
+      - image: circleci/ruby:2.4.2-jessie-node
+        environment:
+          BUNDLE_PATH: vendor/bundle
+          BUNDLE_JOBS: 3
+          BUNDLE_RETRY: 3
     steps:
       - checkout
-
       # Which version of bundler?
       - run:
           name: Which bundler?
           command: bundle -v
-
-      # Restore bundle cache
-      - restore_cache:
-          keys:
-            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-            - rails-demo-bundle-v2-
-
-      - run:
-          name: Bundle Install
-          command: bundle check || bundle install
-
-      # Store bundle cache
-      - save_cache:
-          key: rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
+      # bundle cache
+      - ruby/load-cache:
+          key: rails-demo-bundle
+      - ruby/bundle-install
+      - ruby/save-cache:
+          key: rails-demo-bundle
 
       # Only necessary if app uses webpacker or yarn in some other way
       - restore_cache:
@@ -55,26 +65,36 @@ jobs:
           key: rails-demo-yarn-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
-
+  test:
+    parallelism: 3
+    executor:
+      name: ruby_with_postgres
+      ruby_tag: "2.4.2-jessie-node"
+      postgres_tag: "9.5-alpine"
+    steps:
+      - checkout
+      - ruby/load-cache:
+          key: rails-demo-bundle
+      - ruby/bundle-install
+      # Only necessary if app uses webpacker or yarn in some other way
+      - restore_cache:
+          keys:
+            - rails-demo-yarn-{{ checksum "yarn.lock" }}
+            - rails-demo-yarn-
       - run:
           name: Wait for DB
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
-
       - run:
           name: Database setup
-          command: bin/rails db:schema:load --trace
-
+          command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
-      - run:
-          name: Run rspec in parallel
-          command: |
-            bundle exec rspec --profile 10 \
-                              --format RspecJunitFormatter \
-                              --out test_results/rspec.xml \
-                              --format progress \
-                              $(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
+      - ruby/test
 
-
-      # Save test results for timing analysis
-      - store_test_results:
-          path: test_results
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
