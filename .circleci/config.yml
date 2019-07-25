@@ -1,42 +1,26 @@
-version: 2.1
+version: 2
 
-orbs:
-  ruby: circleci/ruby@0.1.0
-
-executors:
-  ruby_with_postgres:
-    parameters:
-      ruby_tag:
-        description: "The `circleci/postgres` Docker image version tag."
-        type: string
-        default: "latest"
-      postgres_tag:
-        description: "The `circleci/postgres` Docker image version tag."
-        type: string
-        default: "latest"
-    docker:
-      - image: circleci/ruby:<< parameters.ruby_tag >>
-        environment:
-          BUNDLE_JOBS: 3
-          BUNDLE_RETRY: 3
-          BUNDLE_PATH: vendor/bundle
-          PGHOST: 127.0.0.1
-          PGUSER: circleci-demo-ruby
-          RAILS_ENV: test
-      - image: circleci/postgres:<< parameters.postgres_tag >>
-        environment:
-          POSTGRES_USER: circleci-demo-ruby
-          POSTGRES_DB: rails_blog
-          POSTGRES_PASSWORD: ""
+references:
+  default_docker_ruby_executor: &default_docker_ruby_executor
+    image: circleci/ruby:2.6.3-stretch-node
+    environment:
+      BUNDLE_JOBS: 3
+      BUNDLE_RETRY: 3
+      BUNDLE_PATH: vendor/bundle
+      PGHOST: 127.0.0.1
+      PGUSER: circleci-demo-ruby
+      RAILS_ENV: test
+  postgres: &postgres
+    image: circleci/postgres:9.5-alpine
+    environment:
+      POSTGRES_USER: circleci-demo-ruby
+      POSTGRES_DB: rails_blog
+      POSTGRES_PASSWORD: ""
 
 jobs:
   build:
     docker:
-      - image: circleci/ruby:2.6.3-stretch-node
-        environment:
-          BUNDLE_PATH: vendor/bundle
-          BUNDLE_JOBS: 3
-          BUNDLE_RETRY: 3
+      - *default_docker_ruby_executor
     steps:
       - checkout
       # Which version of bundler?
@@ -44,18 +28,23 @@ jobs:
           name: Which bundler?
           command: bundle -v
       # bundle cache
-      - ruby/load-cache:
-          key: rails-demo-bundle
-      - ruby/bundle-install
-      - ruby/save-cache:
-          key: rails-demo-bundle
-
+      - restore_cache:
+          keys:
+            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
+            - rails-demo-bundle-v2-
+      - run:
+          name: Bundle Install
+          command: bundle check || bundle install
+      # Store bundle cache
+      - save_cache:
+          key: rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
       # Only necessary if app uses webpacker or yarn in some other way
       - restore_cache:
           keys:
             - rails-demo-yarn-{{ checksum "yarn.lock" }}
             - rails-demo-yarn-
-
       - run:
           name: Yarn Install
           command: yarn install --cache-folder ~/.cache/yarn
@@ -66,16 +55,18 @@ jobs:
             - ~/.cache/yarn
   test:
     parallelism: 3
-    executor:
-      name: ruby_with_postgres
-      ruby_tag: "2.6.3-stretch-node"
-      postgres_tag: "9.5-alpine"
+    docker:
+      - *default_docker_ruby_executor
+      - *postgres
     steps:
       - checkout
-      - ruby/load-cache:
-          key: rails-demo-bundle
-      - ruby/bundle-install
-      # Only necessary if app uses webpacker or yarn in some other way
+      - restore_cache:
+          keys:
+            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
+            - rails-demo-bundle-v2-
+      - run:
+          name: Bundle Install
+          command: bundle check || bundle install
       - restore_cache:
           keys:
             - rails-demo-yarn-{{ checksum "yarn.lock" }}
@@ -87,7 +78,16 @@ jobs:
           name: Database setup
           command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
-      - ruby/test
+      - run:
+          command: |
+            mkdir /tmp/test-results
+            TESTFILES=$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
+            bundle exec rspec $TESTFILES --profile 10 --format RspecJunitFormatter --out /tmp/test-results/rspec.xml --format progress
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-results
 
 workflows:
   version: 2
