@@ -1,5 +1,7 @@
-FROM ruby:2.4.2-stretch
-RUN apt-get update -qq && apt-get install -y nodejs postgresql-client
+FROM ruby:2.6.3-stretch
+
+RUN apt-get update \
+  && apt-get install -y nodejs postgresql-client
 
 RUN mkdir /myapp
 WORKDIR /myapp
