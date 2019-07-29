@@ -17,7 +17,16 @@
 !/log/.keep
 !/tmp/.keep
 
-/node_modules
 /yarn-error.log
-
 .byebug_history
+
+# Ignore packages
+/vendor
+/node_modules
+
+# Ignore dist files
+/public/assets
+
+# Ignore env files
+*.env
+
