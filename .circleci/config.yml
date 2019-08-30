@@ -1,8 +1,12 @@
-version: 2
+version: 2.1
+
+orbs:
+  ruby: circleci/ruby@0.1.2
 
 references:
-  default_docker_ruby_executor: &default_docker_ruby_executor
-    image: circleci/ruby:2.6.3-stretch-node
+  default_ruby_version: &default_ruby_version 2.6.3-stretch-node
+  default_postgress_version: &default_postgress_version 9.5-alpine
+  ruby_envs: &ruby_envs
     environment:
       BUNDLE_JOBS: 3
       BUNDLE_RETRY: 3
@@ -11,84 +15,111 @@ references:
       PGUSER: circleci-demo-ruby
       PGPASSWORD: ""
       RAILS_ENV: test
-  postgres: &postgres
-    image: circleci/postgres:9.5-alpine
+  postgres_envs: &postgres_envs
     environment:
       POSTGRES_USER: circleci-demo-ruby
       POSTGRES_DB: rails_blog_test
       POSTGRES_PASSWORD: ""
 
+executors:
+  default:
+    parameters:
+      ruby_tag:
+        description: "The `circleci/ruby` Docker image version tag."
+        type: string
+        default: *default_ruby_version
+    docker:
+      - image: circleci/ruby:<< parameters.ruby_tag >>
+        <<: *ruby_envs
+  ruby_with_postgres:
+    parameters:
+      ruby_tag:
+        description: "The `circleci/postgres` Docker image version tag."
+        type: string
+        default: *default_ruby_version
+      postgres_tag:
+        description: "The `circleci/postgres` Docker image version tag."
+        type: string
+        default: *default_postgress_version
+    docker:
+      - image: circleci/ruby:<< parameters.ruby_tag >>
+        <<: *ruby_envs
+      - image: circleci/postgres:<< parameters.postgres_tag >>
+        <<: *postgres_envs
+
+commands:
+  yarn-install:
+    description: "Install node_modules in your build."
+    parameters:
+      cache-folder-path:
+        description: "The path of cache-folder"
+        type: string
+        default: "~/.cache/yarn"
+    steps:
+      - run:
+          name: Yarn Install
+          command: yarn install --cache-folder << parameters.cache-folder-path >>
+  yarn-load-cache:
+    description: "Load node_modules cached"
+    parameters:
+      key:
+        description: "The cache key to use. The key is immutable."
+        type: string
+        default: "rails-demo-yarn-v1"
+    steps:
+      - restore_cache:
+          keys:
+            - << parameters.key >>-{{ checksum "yarn.lock"  }}
+  yarn-save-cache:
+    description: "Save node_modules to cache."
+    parameters:
+      key:
+        description: "The cache key to use. The key is immutable."
+        type: string
+        default: "rails-demo-yarn-v1"
+    steps:
+      - save_cache:
+          key: << parameters.key >>-{{ checksum "yarn.lock"  }}
+          paths:
+            - ~/.cache/yarn
+
 jobs:
   build:
-    docker:
-      - *default_docker_ruby_executor
+    executor: default
     steps:
       - checkout
       # Which version of bundler?
       - run:
           name: Which bundler?
           command: bundle -v
-      # bundle cache
-      - restore_cache:
-          keys:
-            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-            - rails-demo-bundle-v2-
-      - run:
-          name: Bundle Install
-          command: bundle check || bundle install
-      # Store bundle cache
-      - save_cache:
-          key: rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
-      # Only necessary if app uses webpacker or yarn in some other way
-      - restore_cache:
-          keys:
-            - rails-demo-yarn-{{ checksum "yarn.lock" }}
-            - rails-demo-yarn-
-      - run:
-          name: Yarn Install
-          command: yarn install --cache-folder ~/.cache/yarn
-      # Store yarn / webpacker cache
-      - save_cache:
-          key: rails-demo-yarn-{{ checksum "yarn.lock" }}
-          paths:
-            - ~/.cache/yarn
+      - ruby/load-cache:
+          key: rails-demo-bundle
+      - ruby/bundle-install
+      - ruby/save-cache:
+          key: rails-demo-bundle
+      # restore, install and save node_packages
+      - yarn-load-cache
+      - yarn-install
+      - yarn-save-cache
   test:
     parallelism: 3
-    docker:
-      - *default_docker_ruby_executor
-      - *postgres
+    executor: ruby_with_postgres
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-            - rails-demo-bundle-v2-
-      - run:
-          name: Bundle Install
-          command: bundle check || bundle install
-      - restore_cache:
-          keys:
-            - rails-demo-yarn-{{ checksum "yarn.lock" }}
-            - rails-demo-yarn-
+      - ruby/load-cache:
+          key: rails-demo-bundle
+      - ruby/bundle-install
+      - yarn-load-cache
+      # Check DB status
       - run:
           name: Wait for DB
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      # Setup database
       - run:
           name: Database setup
           command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
-      - run:
-          command: |
-            mkdir /tmp/test-results
-            TESTFILES=$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
-            bundle exec rspec $TESTFILES --profile 10 --format RspecJunitFormatter --out /tmp/test-results/rspec.xml --format progress
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-results
+      - ruby/test
 
 workflows:
   version: 2
