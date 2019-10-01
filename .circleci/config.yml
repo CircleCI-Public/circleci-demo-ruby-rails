@@ -24,6 +24,21 @@ executors:
     docker:
       - image: circleci/ruby:<< parameters.ruby_tag >>
         <<: *ruby_envs
+  ruby_tests:
+    parameters:
+      ruby_tag:
+        description: "The `circleci/postgres` Docker image version tag."
+        type: string
+        default: 2.6.3-stretch-node
+      postgres_tag:
+        description: "The `circleci/postgres` Docker image version tag."
+        type: string
+        default: 9.5-alpine
+    docker:
+      - image: circleci/ruby:<< parameters.ruby_tag >>
+        <<: *ruby_envs
+      - image: circleci/postgres:<< parameters.postgres_tag >>
+        <<: *postgres_envs
 jobs:
   build:
     executor: default
@@ -38,10 +53,31 @@ jobs:
       - ruby/bundle-install
       - ruby/save-cache:
           key: rails-demo-bundle
-      # restore, install and save node_packages
+      - persist_to_workspace:
+        root: /tmp/workspace
+        paths:
+          - *
+  test:
+    parallelism: 3
+    executor: ruby_with_postgres
+    steps:
+      - attach_workspace:
+        at: /tmp/workspace
+      # Check DB status
+      - run:
+          name: Wait for DB
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      # Setup database
+      - run:
+          name: Database setup
+          command: bundle exec rails db:schema:load --trace
+      # Run rspec in parallel
+      - ruby/test
 
 workflows:
-  version: 2
   build_and_test:
     jobs:
       - build
+      - test
+        requires:
+          - build
