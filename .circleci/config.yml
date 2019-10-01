@@ -5,7 +5,7 @@ orbs:
 
 references:
   default_ruby_version: &default_ruby_version 2.6.3-stretch-node
-  default_postgress_version: &default_postgress_version 9.5-alpine
+  # default_postgress_version: &default_postgress_version 9.5-alpine
   ruby_envs: &ruby_envs
     environment:
       BUNDLE_JOBS: 3
@@ -15,11 +15,11 @@ references:
       PGUSER: circleci-demo-ruby
       PGPASSWORD: ""
       RAILS_ENV: test
-  postgres_envs: &postgres_envs
-    environment:
-      POSTGRES_USER: circleci-demo-ruby
-      POSTGRES_DB: rails_blog_test
-      POSTGRES_PASSWORD: ""
+  # postgres_envs: &postgres_envs
+  #   environment:
+  #     POSTGRES_USER: circleci-demo-ruby
+  #     POSTGRES_DB: rails_blog_test
+  #     POSTGRES_PASSWORD: ""
 
 executors:
   default:
@@ -31,57 +31,57 @@ executors:
     docker:
       - image: circleci/ruby:<< parameters.ruby_tag >>
         <<: *ruby_envs
-  ruby_with_postgres:
-    parameters:
-      ruby_tag:
-        description: "The `circleci/postgres` Docker image version tag."
-        type: string
-        default: *default_ruby_version
-      postgres_tag:
-        description: "The `circleci/postgres` Docker image version tag."
-        type: string
-        default: *default_postgress_version
-    docker:
-      - image: circleci/ruby:<< parameters.ruby_tag >>
-        <<: *ruby_envs
-      - image: circleci/postgres:<< parameters.postgres_tag >>
-        <<: *postgres_envs
+  # ruby_with_postgres:
+  #   parameters:
+  #     ruby_tag:
+  #       description: "The `circleci/postgres` Docker image version tag."
+  #       type: string
+  #       default: *default_ruby_version
+  #     postgres_tag:
+  #       description: "The `circleci/postgres` Docker image version tag."
+  #       type: string
+  #       default: *default_postgress_version
+  #   docker:
+  #     - image: circleci/ruby:<< parameters.ruby_tag >>
+  #       <<: *ruby_envs
+  #     - image: circleci/postgres:<< parameters.postgres_tag >>
+  #       <<: *postgres_envs
 
-commands:
-  yarn-install:
-    description: "Install node_modules in your build."
-    parameters:
-      cache-folder-path:
-        description: "The path of cache-folder"
-        type: string
-        default: "~/.cache/yarn"
-    steps:
-      - run:
-          name: Yarn Install
-          command: yarn install --cache-folder << parameters.cache-folder-path >>
-  yarn-load-cache:
-    description: "Load node_modules cached"
-    parameters:
-      key:
-        description: "The cache key to use. The key is immutable."
-        type: string
-        default: "rails-demo-yarn-v1"
-    steps:
-      - restore_cache:
-          keys:
-            - << parameters.key >>-{{ checksum "yarn.lock"  }}
-  yarn-save-cache:
-    description: "Save node_modules to cache."
-    parameters:
-      key:
-        description: "The cache key to use. The key is immutable."
-        type: string
-        default: "rails-demo-yarn-v1"
-    steps:
-      - save_cache:
-          key: << parameters.key >>-{{ checksum "yarn.lock"  }}
-          paths:
-            - ~/.cache/yarn
+# commands:
+#   yarn-install:
+#     description: "Install node_modules in your build."
+#     parameters:
+#       cache-folder-path:
+#         description: "The path of cache-folder"
+#         type: string
+#         default: "~/.cache/yarn"
+#     steps:
+#       - run:
+#           name: Yarn Install
+#           command: yarn install --cache-folder << parameters.cache-folder-path >>
+#   yarn-load-cache:
+#     description: "Load node_modules cached"
+#     parameters:
+#       key:
+#         description: "The cache key to use. The key is immutable."
+#         type: string
+#         default: "rails-demo-yarn-v1"
+#     steps:
+#       - restore_cache:
+#           keys:
+#             - << parameters.key >>-{{ checksum "yarn.lock"  }}
+#   yarn-save-cache:
+#     description: "Save node_modules to cache."
+#     parameters:
+#       key:
+#         description: "The cache key to use. The key is immutable."
+#         type: string
+#         default: "rails-demo-yarn-v1"
+#     steps:
+#       - save_cache:
+#           key: << parameters.key >>-{{ checksum "yarn.lock"  }}
+#           paths:
+#             - ~/.cache/yarn
 
 jobs:
   build:
@@ -98,9 +98,6 @@ jobs:
       - ruby/save-cache:
           key: rails-demo-bundle
       # restore, install and save node_packages
-      - yarn-load-cache
-      - yarn-install
-      - yarn-save-cache
   test:
     parallelism: 3
     executor: ruby_with_postgres
@@ -109,7 +106,6 @@ jobs:
       - ruby/load-cache:
           key: rails-demo-bundle
       - ruby/bundle-install
-      - yarn-load-cache
       # Check DB status
       - run:
           name: Wait for DB
@@ -126,6 +122,6 @@ workflows:
   build_and_test:
     jobs:
       - build
-      - test:
-          requires:
-            - build
+      # - test:
+      #     requires:
+      #       - build
