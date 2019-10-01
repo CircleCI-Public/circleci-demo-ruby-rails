@@ -63,7 +63,7 @@ jobs:
       - persist_to_workspace:
         root: /tmp/workspace
         paths:
-          - *
+          - /*
   test:
     parallelism: 3
     executor: ruby_with_postgres
