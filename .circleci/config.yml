@@ -1,10 +1,37 @@
-version: 2.1
+version: 2.1 # Specify the CircleCI Configuration version you wish to choose. See https://circleci.com/docs/2.0/configuration-reference/#section=reference for more info.
 
+####################################################################
+# ORBS (only available in 2.1)                                     #
+#------------------------------------------------------------------#
+# CircleCI orbs are shareable packages of configuration elements,  #
+# including jobs, commands, and executors. CircleCI provides       #
+# certified orbs, along with 3rd-party orbs authored by CircleCI   #
+# partners. It is best practice to first evaluate whether any of   #
+# these existing orbs will help you in your configuration workflow #
+#                                                                  #
+# Please see the following doc for more info:                      #
+# https://circleci.com/docs/2.0/orb-intro/                         #
+####################################################################
 orbs:
-  ruby: circleci/ruby@0.1.2
+  ruby: circleci/ruby@0.1.2 # Ruby orb registry: https://circleci.com/orbs/registry/orb/circleci/ruby
 
+####################################################################
+# Custom standard YAML configuration                               #
+#------------------------------------------------------------------#
+# CircleCI configuration files support standard YAML syntax. This  #
+# may be use for folks that need to create one-off configurations  #
+# that may help in the setup of their CI environment               #
+#                                                                  #
+# In the example below, we have created a reference point to       #
+# initialize the environment variables required for a Ruby on      #
+# Rails environment.                                               #
+# You are also able to set up your environment variables in your  #
+# project settings page or in a context. Please see the doc below  #
+# for more informartion:                                           #
+#                                                                  #
+# https://circleci.com/docs/2.0/env-vars/                          #
+####################################################################
 references:
-  # This can also be stores in the environment variables page in your project settings or a context
   ruby_envs: &ruby_envs
     environment:
       BUNDLE_JOBS: 3
@@ -14,12 +41,22 @@ references:
       PGUSER: circleci-demo-ruby
       PGPASSWORD: ""
       RAILS_ENV: test
-  postgres_envs: &postgres_envs
-    environment:
-      POSTGRES_USER: circleci-demo-ruby
-      POSTGRES_DB: rails_blog_test
-      POSTGRES_PASSWORD: ""
+  # postgres_envs: &postgres_envs
+  #   environment:
+  #     POSTGRES_USER: circleci-demo-ruby
+  #     POSTGRES_DB: rails_blog_test
+  #     POSTGRES_PASSWORD: ""
 
+####################################################################
+# EXECUTORS (Only available in 2.1)                                #
+#------------------------------------------------------------------#
+# Executors define the environment in which the steps of a job     #
+# will be run, allowing you to reuse a single executor definition  #
+# across multiple jobs                                             #
+#                                                                  #
+# Please see the following doc for more info:                      #
+# https://circleci.com/docs/2.0/configuration-reference/#executors-requires-version-21 #
+####################################################################
 executors:
   default:
     parameters:
@@ -30,29 +67,39 @@ executors:
     docker:
       - image: circleci/ruby:<< parameters.ruby_tag >>
         <<: *ruby_envs
-  ruby_tests:
-    parameters:
-      ruby_tag:
-        description: "The `circleci/postgres` Docker image version tag."
-        type: string
-        default: 2.6.3-stretch-node
-      postgres_tag:
-        description: "The `circleci/postgres` Docker image version tag."
-        type: string
-        default: 9.5-alpine
-    docker:
-      - image: circleci/ruby:<< parameters.ruby_tag >>
-        <<: *ruby_envs
-      - image: circleci/postgres:<< parameters.postgres_tag >>
-        <<: *postgres_envs
+  # ruby_tests:
+  #   parameters:
+  #     ruby_tag:
+  #       description: "The `circleci/postgres` Docker image version tag."
+  #       type: string
+  #       default: 2.6.3-stretch-node
+  #     postgres_tag:
+  #       description: "The `circleci/postgres` Docker image version tag."
+  #       type: string
+  #       default: 9.5-alpine
+  #   docker:
+  #     - image: circleci/ruby:<< parameters.ruby_tag >>
+  #       <<: *ruby_envs
+  #     - image: circleci/postgres:<< parameters.postgres_tag >>
+  #       <<: *postgres_envs
 
+
+####################################################################
+# JOBS                                                             #
+#------------------------------------------------------------------#
+# Jobs are a collection of Steps. All of the steps in the job are  #
+# executed in a single unit which consumes a CircleCI container    #
+# from your plan while it’s running.                               #
+#                                                                  #
+# Please see the following doc for more info:                      #
+# https://circleci.com/docs/2.0/jobs-steps/#jobs-overview          #
+####################################################################
 jobs:
   build:
     executor: default
-    steps:
+    steps: # steps reference: https://circleci.com/docs/2.0/configuration-reference/#steps
       - checkout
-      # Which version of bundler?
-      - run:
+      - run: # run reference: https://circleci.com/docs/2.0/configuration-reference/#run
           name: Which bundler?
           command: bundle -v
       - ruby/load-cache:
@@ -60,31 +107,58 @@ jobs:
       - ruby/bundle-install
       - ruby/save-cache:
           key: rails-demo-bundle
-      - persist_to_workspace:
+      - persist_to_workspace: # presist to workspace reference: https://circleci.com/docs/2.0/configuration-reference/#persist_to_workspace
         root: /tmp/workspace
         paths:
           - /*
-  test:
-    parallelism: 3
-    executor: ruby_with_postgres
-    steps:
-      - attach_workspace:
-        at: /tmp/workspace
-      # Check DB status
-      - run:
-          name: Wait for DB
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
-      # Setup database
-      - run:
-          name: Database setup
-          command: bundle exec rails db:schema:load --trace
-      # Run rspec in parallel
-      - ruby/test
+  # test:
+  #   parallelism: 3 # specificy number of threads to parallelize tests
+  #   executor: ruby_with_postgres 
+  #   steps:
+  #     - attach_workspace:
+  #       at: /tmp/workspace
+  #     # Check DB status
+  #     - run:
+  #         name: Wait for DB
+  #         command: dockerize -wait tcp://localhost:5432 -timeout 1m
+  #     # Setup database
+  #     - run:
+  #         name: Database setup
+  #         command: bundle exec rails db:schema:load --trace
+  #     # Run rspec in parallel
+  #     - ruby/test
 
-workflows:
+####################################################################
+# WORKFLOWS                                                        #
+#------------------------------------------------------------------#
+# A workflow is a set of rules for defining a collection of        #
+# jobs and their run order. Workflows support complex job          #
+# orchestration using a simple set of configuration keys to        #
+# help you resolve failures sooner.                                #
+#                                                                  #
+# With workflows, you can:                                         #
+# - Run and troubleshoot jobs independently with real-time status  #
+#   feedback.                                                      #
+# - Schedule workflows for jobs that should only run periodically. #
+# - Fan-out to run multiple jobs in parallel for efficient version #
+#   testing.                                                       #
+# - Fan-in to quickly deploy to multiple platforms.                #
+#                                                                  #
+# Read the following doc for more info:                            #
+# https://circleci.com/docs/2.0/workflows/                         #
+####################################################################
+workflows: 
   build_and_test:
     jobs:
       - build
-      - test:
-          requires:
-            - build
+      # - test:
+      #     requires:
+      #       - build
+
+
+####################################################################
+# What to do next?                                                 #
+#------------------------------------------------------------------#
+# Set up a test job. Please see ruby languague guide https://circleci.com/docs/2.0/language-ruby/ and configuration reference guide, https://circleci.com/docs/2.0/configuration-reference/, for more info on how to get started.
+# Visit our orbs registry page, https://circleci.com/orbs/registry/, to discover additional tooling to streamline your building and testing workflows.
+# Visit cookbooks on some best pratices for deploying to industry's most popular cloud platforms https://circleci.com/docs/2.0/configuration-cookbook/
