@@ -41,11 +41,6 @@ references:
       PGUSER: circleci-demo-ruby
       PGPASSWORD: ""
       RAILS_ENV: test
-  # postgres_envs: &postgres_envs
-  #   environment:
-  #     POSTGRES_USER: circleci-demo-ruby
-  #     POSTGRES_DB: rails_blog_test
-  #     POSTGRES_PASSWORD: ""
 
 ####################################################################
 # EXECUTORS (Only available in 2.1)                                #
@@ -67,22 +62,6 @@ executors:
     docker:
       - image: circleci/ruby:<< parameters.ruby_tag >>
         <<: *ruby_envs
-  # ruby_tests:
-  #   parameters:
-  #     ruby_tag:
-  #       description: "The `circleci/postgres` Docker image version tag."
-  #       type: string
-  #       default: 2.6.3-stretch-node
-  #     postgres_tag:
-  #       description: "The `circleci/postgres` Docker image version tag."
-  #       type: string
-  #       default: 9.5-alpine
-  #   docker:
-  #     - image: circleci/ruby:<< parameters.ruby_tag >>
-  #       <<: *ruby_envs
-  #     - image: circleci/postgres:<< parameters.postgres_tag >>
-  #       <<: *postgres_envs
-
 
 ####################################################################
 # JOBS                                                             #
@@ -111,22 +90,6 @@ jobs:
         root: /tmp/workspace
         paths:
           - /*
-  # test:
-  #   parallelism: 3 # specificy number of threads to parallelize tests
-  #   executor: ruby_with_postgres 
-  #   steps:
-  #     - attach_workspace:
-  #       at: /tmp/workspace
-  #     # Check DB status
-  #     - run:
-  #         name: Wait for DB
-  #         command: dockerize -wait tcp://localhost:5432 -timeout 1m
-  #     # Setup database
-  #     - run:
-  #         name: Database setup
-  #         command: bundle exec rails db:schema:load --trace
-  #     # Run rspec in parallel
-  #     - ruby/test
 
 ####################################################################
 # WORKFLOWS                                                        #
@@ -151,9 +114,6 @@ workflows:
   build_and_test:
     jobs:
       - build
-      # - test:
-      #     requires:
-      #       - build
 
 
 ####################################################################
