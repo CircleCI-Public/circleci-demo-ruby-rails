@@ -81,15 +81,7 @@ jobs:
       - run: # run reference: https://circleci.com/docs/2.0/configuration-reference/#run
           name: Which bundler?
           command: bundle -v
-      - ruby/load-cache:
-          key: rails-demo-bundle
       - ruby/bundle-install
-      - ruby/save-cache:
-          key: rails-demo-bundle
-      - persist_to_workspace: # presist to workspace reference: https://circleci.com/docs/2.0/configuration-reference/#persist_to_workspace
-        root: /tmp/workspace
-        paths:
-          - /*
 
 ####################################################################
 # WORKFLOWS                                                        #
@@ -119,6 +111,16 @@ workflows:
 ####################################################################
 # What to do next?                                                 #
 #------------------------------------------------------------------#
-# Set up a test job. Please see ruby languague guide https://circleci.com/docs/2.0/language-ruby/ and configuration reference guide, https://circleci.com/docs/2.0/configuration-reference/, for more info on how to get started.
-# Visit our orbs registry page, https://circleci.com/orbs/registry/, to discover additional tooling to streamline your building and testing workflows.
-# Visit cookbooks on some best pratices for deploying to industry's most popular cloud platforms https://circleci.com/docs/2.0/configuration-cookbook/
+# Set up a test job. Please see ruby languague guide               #
+# https://circleci.com/docs/2.0/language-ruby/ and configuration   #
+# reference guide,                                                 #
+# https://circleci.com/docs/2.0/configuration-reference/, for more #
+# info on how to get started.                                      #
+#                                                                  #
+# Visit our orbs registry page,                                    #
+# https://circleci.com/orbs/registry/, to discover additional      #
+# tooling to streamline your building and testing workflows.       #
+#                                                                  #
+# Visit cookbooks on some best pratices for deploying to           #
+# industry's most popular cloud platforms                          #
+# https://circleci.com/docs/2.0/configuration-cookbook/            #
