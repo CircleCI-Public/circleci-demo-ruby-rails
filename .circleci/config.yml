@@ -1,8 +1,11 @@
-version: 2
+version: 2.1
+
+orbs:
+  ruby: circleci/ruby@0.2.2
 
 references:
   default_docker_ruby_executor: &default_docker_ruby_executor
-    image: circleci/ruby:2.6.3-stretch-node
+    image: circleci/ruby:2.7.1-node
     environment:
       BUNDLE_JOBS: 3
       BUNDLE_RETRY: 3
@@ -29,18 +32,11 @@ jobs:
           name: Which bundler?
           command: bundle -v
       # bundle cache
-      - restore_cache:
-          keys:
-            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-            - rails-demo-bundle-v2-
-      - run:
-          name: Bundle Install
-          command: bundle check || bundle install
+      - ruby/load-cache
+      # install gems
+      - ruby/install-deps
       # Store bundle cache
-      - save_cache:
-          key: rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
+      - ruby/save-cache
       # Only necessary if app uses webpacker or yarn in some other way
       - restore_cache:
           keys:
@@ -61,13 +57,8 @@ jobs:
       - *postgres
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
-            - rails-demo-bundle-v2-
-      - run:
-          name: Bundle Install
-          command: bundle check || bundle install
+      - ruby/load-cache
+      - ruby/install-deps
       - restore_cache:
           keys:
             - rails-demo-yarn-{{ checksum "yarn.lock" }}
@@ -79,16 +70,7 @@ jobs:
           name: Database setup
           command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
-      - run:
-          command: |
-            mkdir /tmp/test-results
-            TESTFILES=$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)
-            bundle exec rspec $TESTFILES --profile 10 --format RspecJunitFormatter --out /tmp/test-results/rspec.xml --format progress
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-results
+      - ruby/run-tests
 
 workflows:
   version: 2

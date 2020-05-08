@@ -1,4 +1,4 @@
-FROM ruby:2.6.3-stretch
+FROM ruby:2.7.1
 
 RUN apt-get update \
   && apt-get install -y nodejs postgresql-client
