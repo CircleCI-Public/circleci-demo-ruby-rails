@@ -5,7 +5,7 @@ orbs:
 
 references:
   default_docker_ruby_executor: &default_docker_ruby_executor
-    image: circleci/ruby:2.7.1-node
+    image: cimg/ruby:2.7.1-node
     environment:
       BUNDLE_JOBS: 3
       BUNDLE_RETRY: 3
