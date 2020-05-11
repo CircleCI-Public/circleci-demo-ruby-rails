@@ -1,15 +1,9 @@
 version: 2.1
 
-orbs:
-  ruby: circleci/ruby@0.2.2
-
 references:
   default_docker_ruby_executor: &default_docker_ruby_executor
-    image: circleci/ruby:2.7.1-node
+    image: cim/ruby:2.7.1-node
     environment:
-      BUNDLE_JOBS: 3
-      BUNDLE_RETRY: 3
-      BUNDLE_PATH: vendor/bundle
       PGHOST: 127.0.0.1
       PGUSER: circleci-demo-ruby
       PGPASSWORD: ""
@@ -31,12 +25,7 @@ jobs:
       - run:
           name: Which bundler?
           command: bundle -v
-      # bundle cache
-      - ruby/load-cache
-      # install gems
-      - ruby/install-deps
-      # Store bundle cache
-      - ruby/save-cache
+      - run: bundle install
       # Only necessary if app uses webpacker or yarn in some other way
       - restore_cache:
           keys:
@@ -57,8 +46,7 @@ jobs:
       - *postgres
     steps:
       - checkout
-      - ruby/load-cache
-      - ruby/install-deps
+      - run: bundle install
       - restore_cache:
           keys:
             - rails-demo-yarn-{{ checksum "yarn.lock" }}
@@ -69,11 +57,8 @@ jobs:
       - run:
           name: Database setup
           command: bundle exec rails db:schema:load --trace
-      # Run rspec in parallel
-      - ruby/run-tests
 
 workflows:
-  version: 2
   build_and_test:
     jobs:
       - build
