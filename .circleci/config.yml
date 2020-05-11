@@ -2,7 +2,7 @@ version: 2.1
 
 references:
   default_docker_ruby_executor: &default_docker_ruby_executor
-    image: cim/ruby:2.7.1-node
+    image: cimg/ruby:2.7.1-node
     environment:
       PGHOST: 127.0.0.1
       PGUSER: circleci-demo-ruby
