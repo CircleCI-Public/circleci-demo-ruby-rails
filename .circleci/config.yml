@@ -1,68 +1,39 @@
 version: 2.1
 
 orbs:
-  ruby: circleci/ruby@0.2.2
+  ruby: circleci/ruby@dev:alpha
+  node: circleci/node@2
 
-references:
-  default_docker_ruby_executor: &default_docker_ruby_executor
-    image: circleci/ruby:2.7.1-node
+jobs:
+  build:
+    executor: ruby/default
+    steps:
+      - checkout
+      - ruby/install-deps
+      # Store bundle cache
+      - node/install-packages:
+          pkg-manager: yarn
+  test:
+    parallelism: 3
+    docker:
+      - image: cimg/ruby:2.7-node
+      - image: circleci/postgres:9.5-alpine
+        environment:
+          POSTGRES_USER: circleci-demo-ruby
+          POSTGRES_DB: rails_blog_test
+          POSTGRES_PASSWORD: ""
     environment:
-      BUNDLE_JOBS: 3
-      BUNDLE_RETRY: 3
-      BUNDLE_PATH: vendor/bundle
+      BUNDLE_JOBS: "3"
+      BUNDLE_RETRY: "3"
       PGHOST: 127.0.0.1
       PGUSER: circleci-demo-ruby
       PGPASSWORD: ""
       RAILS_ENV: test
-  postgres: &postgres
-    image: circleci/postgres:9.5-alpine
-    environment:
-      POSTGRES_USER: circleci-demo-ruby
-      POSTGRES_DB: rails_blog_test
-      POSTGRES_PASSWORD: ""
-
-jobs:
-  build:
-    docker:
-      - *default_docker_ruby_executor
     steps:
       - checkout
-      # Which version of bundler?
-      - run:
-          name: Which bundler?
-          command: bundle -v
-      # bundle cache
-      - ruby/load-cache
-      # install gems
       - ruby/install-deps
-      # Store bundle cache
-      - ruby/save-cache
-      # Only necessary if app uses webpacker or yarn in some other way
-      - restore_cache:
-          keys:
-            - rails-demo-yarn-{{ checksum "yarn.lock" }}
-            - rails-demo-yarn-
-      - run:
-          name: Yarn Install
-          command: yarn install --cache-folder ~/.cache/yarn
-      # Store yarn / webpacker cache
-      - save_cache:
-          key: rails-demo-yarn-{{ checksum "yarn.lock" }}
-          paths:
-            - ~/.cache/yarn
-  test:
-    parallelism: 3
-    docker:
-      - *default_docker_ruby_executor
-      - *postgres
-    steps:
-      - checkout
-      - ruby/load-cache
-      - ruby/install-deps
-      - restore_cache:
-          keys:
-            - rails-demo-yarn-{{ checksum "yarn.lock" }}
-            - rails-demo-yarn-
+      - node/install-packages:
+          pkg-manager: yarn
       - run:
           name: Wait for DB
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
@@ -70,7 +41,7 @@ jobs:
           name: Database setup
           command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
-      - ruby/run-tests
+      - ruby/rspec-test
 
 workflows:
   version: 2
