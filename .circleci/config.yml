@@ -6,12 +6,12 @@ orbs:
 
 jobs:
   build:
-    executor: ruby/default
+    docker:
+      - image: cimg/ruby:2.7-node
     steps:
       - checkout
       - ruby/install-deps
       # Store bundle cache
-      - node/install-yarn
       - node/install-packages:
           pkg-manager: yarn
           cache-key: "yarn.lock"
