@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  ruby: circleci/ruby@dev:alpha
+  ruby: circleci/ruby@1.0
   node: circleci/node@2
 
 jobs:
@@ -15,7 +15,6 @@ jobs:
       - node/install-packages:
           pkg-manager: yarn
           cache-key: "yarn.lock"
-
   test:
     parallelism: 3
     docker:
