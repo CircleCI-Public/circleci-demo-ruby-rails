@@ -45,6 +45,10 @@ jobs:
           command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
       - ruby/rspec-test
+      # TODO: Add new rubocop command later
+      - run:
+          name: run rubocop checking
+          command: bundle exec rubocop
 
 workflows:
   version: 2
