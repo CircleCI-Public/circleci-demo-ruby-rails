@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  ruby: circleci/ruby@1.0
+  ruby: circleci/ruby@1.1.0
   node: circleci/node@2
 
 jobs:
@@ -45,10 +45,7 @@ jobs:
           command: bundle exec rails db:schema:load --trace
       # Run rspec in parallel
       - ruby/rspec-test
-      # TODO: Add new rubocop command later
-      - run:
-          name: run rubocop checking
-          command: bundle exec rubocop
+      - ruby/rubocop-check
 
 workflows:
   version: 2
