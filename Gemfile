@@ -37,7 +37,7 @@ gem 'jbuilder', '~> 2.9.1'
 # gem 'capistrano-rails', group: :development
 
 # https://github.com/rubocop-hq/rubocop
-gem 'rubocop', '~> 0.88.0', require: false
+gem 'rubocop', '~> 0.89.0', require: false
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
