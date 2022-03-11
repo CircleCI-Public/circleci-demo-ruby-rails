@@ -6,16 +6,19 @@ orbs:
 
 jobs:
   build:
+    working_directory: ~/project/backend
     docker:
       - image: cimg/ruby:2.7-node
     steps:
-      - checkout
+      - checkout:
+          path: ~/project
       - ruby/install-deps
       # Store bundle cache
       - node/install-packages:
           pkg-manager: yarn
           cache-key: "yarn.lock"
   test:
+    working_directory: ~/project/backend
     parallelism: 3
     docker:
       - image: cimg/ruby:2.7-node
